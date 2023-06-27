@@ -10,6 +10,7 @@ use hyper::{http::{Request, header::{ACCEPT, ACCEPT_ENCODING,
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
+use rand::Rng;
 
 #[derive(Default)]
 struct AppState {
@@ -31,7 +32,13 @@ async fn post_data(
 }
 
 async fn get_data(State(state): State<Arc<Mutex<AppState>>>) -> impl IntoResponse {
+    let actions:Vec<&'static str> = vec!["create", "read", "update", "delete"];
+    let clients:Vec<&'static str> = vec!["mobile", "tv", "desktop"];
     let state = state.lock().unwrap();
+    let mut rng = rand::thread_rng();
+    let action_idx  = rng.gen_range(0..actions.len());
+    let client_idx  = rng.gen_range(0..clients.len());
+    tracing::warn!(message="did action", action=actions[action_idx], client=clients[client_idx]);
     (StatusCode::OK, Json(state.data.clone()))
 }
 

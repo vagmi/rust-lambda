@@ -103,3 +103,5 @@ jobs:
         push: true
         provenance: false
         tags: ${{ secrets.ECR_REPO_URL }}:${{ steps.commit.outputs.short }}
+        cache-from: type=registry,ref=${{ secrets.ECR_REPO_URL }}:${{ steps.commit.outputs.short }}
+        cache-to: type=inline
