@@ -49,7 +49,6 @@ class RustLambdaStack extends TerraformStack {
             functionName: "rust-lambda",
             packageType: "Image",
             role: role.arn,
-            runtime: "provided",
             imageUri: `${repo.repositoryUrl}:${commitSha}`,
         })
 
