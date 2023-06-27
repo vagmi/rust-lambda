@@ -101,4 +101,5 @@ jobs:
         context: .
         platforms: linux/amd64
         push: true
+        provenance: false
         tags: ${{ secrets.ECR_REPO_URL }}:${{ steps.commit.outputs.short }}
