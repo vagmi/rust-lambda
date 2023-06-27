@@ -10,6 +10,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  setup-stack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install CDKTF CLI
+        run: yarn global add cdktf-cli
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.1
+          terraform_wrapper: false
+      - name: Install dependencies
+        working-directory: infra
+        run: |
+          yarn install --frozen-lockfile --prefer-offline
+          terraform version -json
+          cdktf get
+          cdktf deploy infra --auto-approve
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
   build-and-test:
     runs-on: ubuntu-latest
     services:
@@ -54,12 +78,3 @@ jobs:
       run: cargo test --verbose
       env:
         DATABASE_URL: postgres://postgres:password@localhost/postgres?sslmode=disable
-    - id: commit
-      uses: pr-mpt/actions-commit-hash@v2
-    - name: Build Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        platforms: linux/amd64
-        push: false
-        tags: ${{ steps.commit.outputs.short }}

@@ -1,6 +1,7 @@
 import { Construct } from "constructs";
-import { App, TerraformOutput, TerraformStack } from "cdktf";
+import { App, S3Backend, TerraformOutput, TerraformStack } from "cdktf";
 import * as aws from "@cdktf/provider-aws";
+import { RemoteBackendStack } from "./backend";
 
 const PROJECT_TAGS = {"name": "rust-lambda", "provisioner": "cdktf"}
 
@@ -23,6 +24,13 @@ class RustLambdaStack extends TerraformStack {
         super(scope, id);
         new aws.provider.AwsProvider(this, "aws", {
             region: "us-east-1",
+        })
+        new S3Backend(this, {
+            bucket: "cdktf-backends",
+            key: "rust-lambda/terraform.tfstate",
+            region: "us-east-1",
+            encrypt: true,
+            dynamodbTable: "cdktf-remote-backend-lock",
         })
         // EcrRepository
         const repo = new aws.ecrRepository.EcrRepository(this, "ecr", {name: "rust-lambda", tags:PROJECT_TAGS})
@@ -64,4 +72,5 @@ class RustLambdaStack extends TerraformStack {
 
 const app = new App();
 new RustLambdaStack(app, "infra");
+new RemoteBackendStack(app, "remote-backend");
 app.synth();
