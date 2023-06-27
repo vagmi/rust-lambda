@@ -12,27 +12,32 @@ env:
 jobs:
   setup-stack:
     runs-on: ubuntu-latest
+    needs:
+      - build-and-test
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - name: Install CDKTF CLI
-        run: yarn global add cdktf-cli
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.1
-          terraform_wrapper: false
-      - name: Install dependencies
-        working-directory: infra
-        run: |
-          yarn install --frozen-lockfile --prefer-offline
-          terraform version -json
-          cdktf get
-          cdktf deploy infra --auto-approve
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+    - id: commit
+      uses: pr-mpt/actions-commit-hash@v2
+    - name: Install CDKTF CLI
+      run: yarn global add cdktf-cli
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.1
+        terraform_wrapper: false
+    - name: Install dependencies
+      working-directory: infra
+      run: |
+        yarn install --frozen-lockfile --prefer-offline
+        terraform version -json
+        cdktf get
+        cdktf deploy infra --auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        COMMIT_SHA: ${{ steps.commit.outputs.short }}
 
   build-and-test:
     runs-on: ubuntu-latest
@@ -78,3 +83,22 @@ jobs:
       run: cargo test --verbose
       env:
         DATABASE_URL: postgres://postgres:password@localhost/postgres?sslmode=disable
+    - uses: actions/checkout@v3
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-region: us-east-1
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    - id: commit
+      uses: pr-mpt/actions-commit-hash@v2
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        platforms: linux/amd64
+        push: true
+        tags: ${{ secrets.ECR_REPO_URL }}:${{ steps.commit.outputs.short }}

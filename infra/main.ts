@@ -44,11 +44,12 @@ class RustLambdaStack extends TerraformStack {
             policyArn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
         })
 
+        const commitSha = process.env.COMMIT_SHA || "latest"
         const lambda = new aws.lambdaFunction.LambdaFunction(this, "rust-lambda", {
             functionName: "rust-lambda",
             packageType: "Image",
             role: role.arn,
-            imageUri: `${repo.repositoryUrl}:latest`,
+            imageUri: `${repo.repositoryUrl}:${commitSha}`,
         })
 
         const apiGw = new aws.apigatewayv2Api.Apigatewayv2Api(this, "api-gw", {
