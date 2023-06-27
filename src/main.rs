@@ -48,7 +48,7 @@ async fn main() {
 
     // Trace every request
     let trace_layer =
-        TraceLayer::new_for_http().on_request(|_: &Request<Body>, span: &tracing::Span| {
+        TraceLayer::new_for_http().on_request(|_: &Request<Body>, _span: &tracing::Span| {
             tracing::info!(message = "begin request")
         });
 

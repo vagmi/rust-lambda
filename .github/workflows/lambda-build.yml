@@ -23,6 +23,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Setup QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v2
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
@@ -38,8 +42,8 @@ jobs:
           ~/.cargo/git/db/
           target/            
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - name: Install Cargo SQLX
-      run: cargo install sqlx-cli || true
+    - name: BinInstall Cargo SQLX CLI
+      run: (curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash) && cargo binstall --no-confirm --no-symlinks sqlx-cli
     - name: Build
       run: cargo build --verbose
     - name: Create DB
@@ -50,3 +54,12 @@ jobs:
       run: cargo test --verbose
       env:
         DATABASE_URL: postgres://postgres:password@localhost/postgres?sslmode=disable
+    - id: commit
+      uses: pr-mpt/actions-commit-hash@v2
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        platforms: linux/amd64
+        push: false
+        tags: ${{ steps.commit.outputs.short }}
