@@ -18,19 +18,19 @@ export class RdsStack extends Construct {
 
     this.password = password;
 
-    // aws.dataAwsDbSubnetGroup.DataAwsDbSubnetGroup(this, "db-subnet-group", {
-
-    // })
     const vpc = new aws.dataAwsVpc.DataAwsVpc(this, "vpc", {default: true});
-    // const subnetIds = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnetIds", {
-    //   filter: [{
-    //     name: "vpc-id",
-    //     values: [vpc.id]
-    //   }]
-    // })
+
+    const subnetIds = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnetIds", {
+      filter: [{
+        name: "vpc-id",
+        values: [vpc.id]
+      }]
+    })
+
     const rdsAuroraConfig: RdsAuroraConfig = {
         vpcId: vpc.id,
-        // subnets: subnetIds.ids,
+        subnets: subnetIds.ids,
+        createDbSubnetGroup: true,
         name: "rust-lambda-aurora",
         engine: "aurora-postgresql",
         engineMode: "serverless",
@@ -39,10 +39,13 @@ export class RdsStack extends Construct {
         applyImmediately: true,
         storageEncrypted: true,
         monitoringInterval: 60,
+        autoscalingMinCapacity: 2,
+        autoscalingMaxCapacity: 8,
         
         scalingConfiguration: {
             autoPause: 'true',
-            maxCapacity: '2',
+            minCapacity: '2',
+            maxCapacity: '8',
             secondsUntilAutoPause: '300',
             timeoutAction: "ForceApplyCapacityChange",
         },
