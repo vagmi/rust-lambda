@@ -61,7 +61,7 @@ jobs:
         yarn install --frozen-lockfile --prefer-offline
         terraform version -json
         cdktf get
-        cdktf deploy infra --auto-approve
+        cdktf deploy ecr infra --auto-approve
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
