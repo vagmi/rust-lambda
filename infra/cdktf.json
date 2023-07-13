@@ -4,7 +4,13 @@
   "projectId": "81f23b27-c376-4824-9a4d-86169e44d635",
   "sendCrashReports": "true",
   "terraformProviders": ["aws"],
-  "terraformModules": [],
+  "terraformModules": [
+      {
+          "name": "rds-aurora",
+          "source": "terraform-aws-modules/rds-aurora/aws",
+          "version": "~> 8.3.1"
+      }
+  ],
   "context": {
 
   }

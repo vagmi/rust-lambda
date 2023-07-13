@@ -8,3 +8,6 @@ An example repository to deploy a rust service as lambda.
 * [ ] 12 factor apps (Config through env variables, streaming structure logs)
 * [ ] provision a Aurora PostgreSQL 
 * [ ] Endpoint that uses a postgreSQL database
+
+
+

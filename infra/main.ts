@@ -1,7 +1,9 @@
 import { Construct } from "constructs";
 import { App, S3Backend, TerraformOutput, TerraformStack } from "cdktf";
 import * as aws from "@cdktf/provider-aws";
+import * as crypto from "crypto";
 import { RemoteBackendStack } from "./backend";
+import { RdsStack } from "./rds-stack";
 
 const PROJECT_TAGS = {"name": "rust-lambda", "provisioner": "cdktf"}
 
@@ -43,6 +45,8 @@ class RustLambdaStack extends TerraformStack {
             role: role.name,
             policyArn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
         })
+        const password = crypto.randomBytes(16).toString("hex");
+        const rdsStack = new RdsStack(this, "rds-stack", password)
 
         const commitSha = process.env.COMMIT_SHA || "latest"
         const lambda = new aws.lambdaFunction.LambdaFunction(this, "rust-lambda", {
@@ -50,6 +54,11 @@ class RustLambdaStack extends TerraformStack {
             packageType: "Image",
             role: role.arn,
             imageUri: `${repo.repositoryUrl}:${commitSha}`,
+            environment: {
+                variables: {
+                    "DATABASE_URL": rdsStack.rdsAurora.endpoints,
+                }
+            }
         })
 
         const apiGw = new aws.apigatewayv2Api.Apigatewayv2Api(this, "api-gw", {
@@ -67,6 +76,10 @@ class RustLambdaStack extends TerraformStack {
         
         new TerraformOutput(this, "api-gw-url", {
             value: apiGw.apiEndpoint,
+        })
+
+        new TerraformOutput(this, "rds-password", {
+            value: password,
         })
     }
 }
