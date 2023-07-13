@@ -55,8 +55,9 @@ class RustLambdaStack extends TerraformStack {
             role: role.arn,
             imageUri: `${repo.repositoryUrl}:${commitSha}`,
             environment: {
+
                 variables: {
-                    "DATABASE_URL": rdsStack.rdsAurora.endpoints,
+                    "DATABASE_URL": rdsStack.rdsAurora.clusterEndpointOutput
                 }
             }
         })
@@ -81,6 +82,9 @@ class RustLambdaStack extends TerraformStack {
         new TerraformOutput(this, "rds-password", {
             value: password,
         })
+        new TerraformOutput(this, "rds-aurora-endpoint", {
+            value: rdsStack.rdsAurora.clusterEndpointOutput
+        });
     }
 }
 
