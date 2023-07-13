@@ -1,4 +1,4 @@
-import { TerraformOutput, TerraformStack } from "cdktf";
+import { TerraformOutput } from "cdktf";
 import { Construct } from "constructs";
 import * as aws from "@cdktf/provider-aws";
 import * as random from "@cdktf/provider-random";
@@ -6,16 +6,25 @@ import {RdsAurora, RdsAuroraConfig} from "./.gen/modules/rds-aurora";
 
 const PROJECT_TAGS = {"name": "rust-lambda", "provisioner": "cdktf"}
 
-export class RdsStack extends TerraformStack {
+export class RdsStack extends Construct {
   rdsAurora: RdsAurora;
-  constructor(scope: Construct, name: string, password: string) {
+  password: random.password.Password;
+  constructor(scope: Construct, name: string) {
     super(scope, name);
-    new aws.provider.AwsProvider(this, "aws", {
-        region: "us-east-1",
+    new random.provider.RandomProvider(this, "random", {});
+    const password = new random.password.Password(this, "password", {
+      length: 20
     })
-    new random.provider.RandomProvider(this, "random", {})
+
+    this.password = password;
+
     const vpc = new aws.dataAwsVpc.DataAwsVpc(this, "vpc", {default: true});
-    const subnetIds = new aws.dataAwsSubnetIds.DataAwsSubnetIds(this, "subnetIds", {vpcId: vpc.id});
+    const subnetIds = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnetIds", {
+      filter: [{
+        name: "vpc-id",
+        values: [vpc.id]
+      }]
+    })
     const rdsAuroraConfig: RdsAuroraConfig = {
         vpcId: vpc.id,
         subnets: subnetIds.ids,
@@ -23,7 +32,7 @@ export class RdsStack extends TerraformStack {
         engine: "aurora-postgresql",
         engineMode: "serverless",
         masterUsername: "root",
-        masterPassword: password,
+        masterPassword: password.result,
         applyImmediately: true,
         storageEncrypted: true,
         monitoringInterval: 60,
@@ -40,7 +49,7 @@ export class RdsStack extends TerraformStack {
     }
     const rdsAurora = new RdsAurora(this, "rdsAurora", rdsAuroraConfig);
     new TerraformOutput(this, "rds-aurora-endpoint", {
-        value: rdsAurora.endpoints,
+        value: rdsAurora.clusterEndpointOutput
     });
     this.rdsAurora = rdsAurora;
   }

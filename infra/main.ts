@@ -1,7 +1,6 @@
 import { Construct } from "constructs";
 import { App, S3Backend, TerraformOutput, TerraformStack } from "cdktf";
 import * as aws from "@cdktf/provider-aws";
-import * as crypto from "crypto";
 import { RemoteBackendStack } from "./backend";
 import { RdsStack } from "./rds-stack";
 
@@ -27,13 +26,6 @@ class RustLambdaStack extends TerraformStack {
         new aws.provider.AwsProvider(this, "aws", {
             region: "us-east-1",
         })
-        new S3Backend(this, {
-            bucket: "cdktf-backends",
-            key: "rust-lambda/terraform.tfstate",
-            region: "us-east-1",
-            encrypt: true,
-            dynamodbTable: "cdktf-remote-backend-lock",
-        })
         // EcrRepository
         const repo = new aws.ecrRepository.EcrRepository(this, "ecr", {name: "rust-lambda", tags:PROJECT_TAGS})
         const role = new aws.iamRole.IamRole(this, "lambda-exec", {
@@ -41,14 +33,14 @@ class RustLambdaStack extends TerraformStack {
             assumeRolePolicy: JSON.stringify(lambdaRolePolicy),
             tags: PROJECT_TAGS
         });
+
         new aws.iamRolePolicyAttachment.IamRolePolicyAttachment(this, "lambda-exec-policy", {
             role: role.name,
             policyArn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-        })
-        const password = crypto.randomBytes(16).toString("hex");
-        const rdsStack = new RdsStack(this, "rds-stack", password)
+        });
 
         const commitSha = process.env.COMMIT_SHA || "latest"
+        const rdsStack = new RdsStack(this, "rds-stack")
         const lambda = new aws.lambdaFunction.LambdaFunction(this, "rust-lambda", {
             functionName: "rust-lambda",
             packageType: "Image",
@@ -79,16 +71,21 @@ class RustLambdaStack extends TerraformStack {
             value: apiGw.apiEndpoint,
         })
 
-        new TerraformOutput(this, "rds-password", {
-            value: password,
-        })
         new TerraformOutput(this, "rds-aurora-endpoint", {
             value: rdsStack.rdsAurora.clusterEndpointOutput
         });
+        new S3Backend(this, {
+            bucket: "cdktf-backends",
+            key: "rust-lambda/terraform.tfstate",
+            region: "us-east-1",
+            encrypt: true,
+            dynamodbTable: "cdktf-remote-backend-lock",
+        })
     }
 }
 
 const app = new App();
 new RustLambdaStack(app, "infra");
 new RemoteBackendStack(app, "remote-backend");
+
 app.synth();
