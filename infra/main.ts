@@ -3,6 +3,7 @@ import { App, S3Backend, TerraformOutput, TerraformStack } from "cdktf";
 import * as aws from "@cdktf/provider-aws";
 import { RemoteBackendStack } from "./backend";
 import { RdsStack } from "./rds-stack";
+import { EcrRepository } from "@cdktf/provider-aws/lib/ecr-repository";
 
 const PROJECT_TAGS = {"name": "rust-lambda", "provisioner": "cdktf"}
 
@@ -20,14 +21,31 @@ const lambdaRolePolicy = {
     ],
 };
 
-class RustLambdaStack extends TerraformStack {
+class EcrStack extends TerraformStack {
+    repo: EcrRepository
     constructor(scope: Construct, id: string) {
         super(scope, id);
         new aws.provider.AwsProvider(this, "aws", {
             region: "us-east-1",
+        });
+        new S3Backend(this, {
+            bucket: "cdktf-backends",
+            key: "rust-lambda/ecr/terraform.tfstate",
+            region: "us-east-1",
+            encrypt: true,
+            dynamodbTable: "cdktf-remote-backend-lock",
+        });
+        this.repo = new aws.ecrRepository.EcrRepository(this, "ecr", {name: "rust-lambda", tags:PROJECT_TAGS})
+    }
+}
+
+class RustLambdaStack extends TerraformStack {
+    constructor(scope: Construct, id: string, repoUrl: string) {
+        super(scope, id);
+        new aws.provider.AwsProvider(this, "aws", {
+            region: "us-east-1",
         })
-        // EcrRepository
-        const repo = new aws.ecrRepository.EcrRepository(this, "ecr", {name: "rust-lambda", tags:PROJECT_TAGS})
+
         const role = new aws.iamRole.IamRole(this, "lambda-exec", {
             name: `rust-lambda-exec-${id}`,
             assumeRolePolicy: JSON.stringify(lambdaRolePolicy),
@@ -45,7 +63,7 @@ class RustLambdaStack extends TerraformStack {
             functionName: "rust-lambda",
             packageType: "Image",
             role: role.arn,
-            imageUri: `${repo.repositoryUrl}:${commitSha}`,
+            imageUri: `${repoUrl}:${commitSha}`,
             environment: {
 
                 variables: {
@@ -76,7 +94,7 @@ class RustLambdaStack extends TerraformStack {
         });
         new S3Backend(this, {
             bucket: "cdktf-backends",
-            key: "rust-lambda/terraform.tfstate",
+            key: "rust-lambda/infra/terraform.tfstate",
             region: "us-east-1",
             encrypt: true,
             dynamodbTable: "cdktf-remote-backend-lock",
@@ -85,7 +103,10 @@ class RustLambdaStack extends TerraformStack {
 }
 
 const app = new App();
-new RustLambdaStack(app, "infra");
+const ecrStack = new EcrStack(app, "ecr");
+const lambdaStack = new RustLambdaStack(app, "infra", ecrStack.repo.repositoryUrl);
 new RemoteBackendStack(app, "remote-backend");
+
+lambdaStack.addDependency(ecrStack);
 
 app.synth();
