@@ -18,16 +18,19 @@ export class RdsStack extends Construct {
 
     this.password = password;
 
+    // aws.dataAwsDbSubnetGroup.DataAwsDbSubnetGroup(this, "db-subnet-group", {
+
+    // })
     const vpc = new aws.dataAwsVpc.DataAwsVpc(this, "vpc", {default: true});
-    const subnetIds = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnetIds", {
-      filter: [{
-        name: "vpc-id",
-        values: [vpc.id]
-      }]
-    })
+    // const subnetIds = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnetIds", {
+    //   filter: [{
+    //     name: "vpc-id",
+    //     values: [vpc.id]
+    //   }]
+    // })
     const rdsAuroraConfig: RdsAuroraConfig = {
         vpcId: vpc.id,
-        subnets: subnetIds.ids,
+        // subnets: subnetIds.ids,
         name: "rust-lambda-aurora",
         engine: "aurora-postgresql",
         engineMode: "serverless",
