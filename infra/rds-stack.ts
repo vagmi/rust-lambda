@@ -37,6 +37,7 @@ export class RdsStack extends Construct {
             engineMode: "serverless",
             masterUsername: "root",
             masterPassword: password.result,
+            manageMasterUserPassword: false,
             applyImmediately: true,
             storageEncrypted: true,
             monitoringInterval: 60,
@@ -49,7 +50,11 @@ export class RdsStack extends Construct {
                 second_until_auto_pause: '300',
                 timeout_action: "ForceApplyCapacityChange",
             },
-
+            securityGroupRules: [
+                {
+                    cidr_blocks: ["0.0.0.0/0"],
+                }
+            ],
             tags: PROJECT_TAGS
         }
         const rdsAurora = new RdsAurora(this, "rdsAurora", rdsAuroraConfig);
