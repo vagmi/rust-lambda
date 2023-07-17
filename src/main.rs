@@ -35,8 +35,11 @@ struct CreateTodo {
 
 impl AppState {
     async fn new() -> Result<Self> {
+        tracing::info!("Connecting to database");
         let pool = sqlx::PgPool::connect(std::env::var("DATABASE_URL")?.as_str()).await?;
+        tracing::info!("Running migrations");
         sqlx::migrate!("./migrations").run(&pool).await?;
+        tracing::info!("Migration complete");
         Ok(Self { pool })
     }
 }

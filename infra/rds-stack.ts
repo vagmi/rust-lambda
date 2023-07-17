@@ -56,6 +56,7 @@ export class RdsStack extends Construct {
                     cidr_blocks: ["0.0.0.0/0"],
                 }
             ],
+            enableHttpEndpoint: true,
             tags: PROJECT_TAGS
         }
         const rdsAurora = new RdsAurora(this, "rdsAurora", rdsAuroraConfig);
