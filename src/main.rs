@@ -12,6 +12,7 @@ use hyper::{http::{Request, header::{ACCEPT, ACCEPT_ENCODING,
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
+use sqlx::postgres::PgPoolOptions;
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -35,8 +36,12 @@ struct CreateTodo {
 
 impl AppState {
     async fn new() -> Result<Self> {
-        tracing::info!("Connecting to database");
-        let pool = sqlx::PgPool::connect(std::env::var("DATABASE_URL")?.as_str()).await?;
+        tracing::info!(database_url = std::env::var("DATABASE_URL")?, "Connecting to database");
+        let pool = PgPoolOptions::new()
+            .acquire_timeout(std::time::Duration::from_secs(30))
+            .max_connections(5)
+            .connect(&std::env::var("DATABASE_URL")?)
+            .await?;
         tracing::info!("Running migrations");
         sqlx::migrate!("./migrations").run(&pool).await?;
         tracing::info!("Migration complete");
