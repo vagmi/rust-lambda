@@ -1,5 +1,7 @@
+use anyhow::Result;
 use axum::extract::State;
 use axum::response::IntoResponse;
+
 use axum::{
     routing::{get, post},
     Json, Router,
@@ -8,42 +10,65 @@ use hyper::{http::{Request, header::{ACCEPT, ACCEPT_ENCODING,
                                      AUTHORIZATION, CONTENT_TYPE, ORIGIN}}, 
            Body, StatusCode};
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
+use serde_json::json;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
-use rand::Rng;
 
-#[derive(Default)]
+#[derive(Debug, Clone)]
 struct AppState {
-    data: Vec<Data>,
+    pool: sqlx::PgPool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-struct Data {
-    name: String,
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+struct Todo {
+    id: i32,
+    title: String,
+    completed: bool,
 }
 
-async fn post_data(
-    State(state): State<Arc<Mutex<AppState>>>,
-    Json(payload): Json<Data>,
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CreateTodo {
+    title: String,
+    completed: bool,
+}
+
+impl AppState {
+    async fn new() -> Result<Self> {
+        let pool = sqlx::PgPool::connect(std::env::var("DATABASE_URL")?.as_str()).await?;
+        sqlx::migrate!("./migrations").run(&pool).await?;
+        Ok(Self { pool })
+    }
+}
+
+
+async fn create_todo(
+    State(state): State<AppState>,
+    Json(payload): Json<CreateTodo>,
 ) -> impl IntoResponse {
-    let mut state = state.lock().unwrap();
-    state.data.push(payload);
-    StatusCode::CREATED
+    let local_pool = state.pool.clone();
+    let todo = sqlx::query_as::<_,Todo>("insert into todos (title, completed) values ($1, $2) returning *")
+        .bind(&payload.title)
+        .bind(&payload.completed)
+        .fetch_one(&local_pool).await;
+     match todo {
+         Ok(todo) => (StatusCode::OK, Json(todo)).into_response(),
+         Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": err.to_string()}))).into_response(),
+     }
 }
 
-async fn get_data(State(state): State<Arc<Mutex<AppState>>>) -> impl IntoResponse {
-    let actions:Vec<&'static str> = vec!["create", "read", "update", "delete"];
-    let clients:Vec<&'static str> = vec!["mobile", "tv", "desktop"];
-    let state = state.lock().unwrap();
-    let mut rng = rand::thread_rng();
-    let action_idx  = rng.gen_range(0..actions.len());
-    let client_idx  = rng.gen_range(0..clients.len());
-    tracing::warn!(message="did action", action=actions[action_idx], client=clients[client_idx]);
-    (StatusCode::OK, Json(state.data.clone()))
+async fn get_todos(State(state): State<AppState>) -> impl IntoResponse {
+    let local_pool = state.pool.clone();
+    let todos = sqlx::query_as::<_,Todo>("select * from todos")
+                     .fetch_all(&local_pool).await;
+    match todos {
+        Ok(todo) => (StatusCode::OK, Json(todo)).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": err.to_string()}))).into_response(),
+    }
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_ansi(false)
         .without_time()
@@ -51,7 +76,7 @@ async fn main() {
         .json()
         .init();
 
-    let state = Arc::new(Mutex::new(AppState::default()));
+    let state = AppState::new().await?;
 
     // Trace every request
     let trace_layer =
@@ -73,8 +98,8 @@ async fn main() {
 
     // Wrap an `axum::Router` with our state, CORS, Tracing, & Compression layers
     let app = Router::new()
-        .route("/", post(post_data))
-        .route("/", get(get_data))
+        .route("/", post(create_todo))
+        .route("/", get(get_todos))
         .layer(cors_layer)
         .layer(trace_layer)
         .layer(CompressionLayer::new().gzip(true).deflate(true))
@@ -99,4 +124,5 @@ async fn main() {
 
         lambda_http::run(app).await.unwrap();
     }
+    Ok(())
 }
