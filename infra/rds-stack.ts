@@ -31,6 +31,7 @@ export class RdsStack extends Construct {
             vpcId: vpc.id,
             subnets: subnetIds.ids,
             createDbSubnetGroup: true,
+            publiclyAccessible: true,
             autoscalingEnabled: true,
             name: "rust-lambda-aurora",
             engine: "aurora-postgresql",
@@ -44,7 +45,7 @@ export class RdsStack extends Construct {
             autoscalingMinCapacity: 2,
             autoscalingMaxCapacity: 8,
             scalingConfiguration: {
-                auto_pause: 'false',
+                auto_pause: 'true',
                 min_capacity: '2',
                 max_capacity: '8',
                 second_until_auto_pause: '300',
