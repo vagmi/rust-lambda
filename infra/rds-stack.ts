@@ -31,6 +31,7 @@ export class RdsStack extends Construct {
             vpcId: vpc.id,
             subnets: subnetIds.ids,
             createDbSubnetGroup: true,
+            autoscalingEnabled: true,
             name: "rust-lambda-aurora",
             engine: "aurora-postgresql",
             engineMode: "serverless",
@@ -41,14 +42,14 @@ export class RdsStack extends Construct {
             monitoringInterval: 60,
             autoscalingMinCapacity: 2,
             autoscalingMaxCapacity: 8,
-
             scalingConfiguration: {
-                autoPause: 'true',
-                minCapacity: '2',
-                maxCapacity: '8',
-                secondsUntilAutoPause: '300',
-                timeoutAction: "ForceApplyCapacityChange",
+                auto_pause: 'true',
+                min_capacity: '2',
+                max_capacity: '8',
+                second_until_auto_pause: '300',
+                timeout_action: "ForceApplyCapacityChange",
             },
+
             tags: PROJECT_TAGS
         }
         const rdsAurora = new RdsAurora(this, "rdsAurora", rdsAuroraConfig);
