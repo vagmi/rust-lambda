@@ -67,7 +67,7 @@ class RustLambdaStack extends TerraformStack {
             environment: {
 
                 variables: {
-                    "DATABASE_URL": rdsStack.rdsAurora.clusterEndpointOutput
+                    "DATABASE_URL": `postgres://root:${rdsStack.password.result}@${rdsStack.rdsAurora.clusterEndpointOutput}`
                 }
             }
         })
