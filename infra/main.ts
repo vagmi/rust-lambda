@@ -56,18 +56,34 @@ class RustLambdaStack extends TerraformStack {
             role: role.name,
             policyArn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
         });
+        new aws.iamRolePolicyAttachment.IamRolePolicyAttachment(this, "lambda-vpc-exec-policy", {
+            role: role.name,
+            policyArn: "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+        });
 
+        const defaultVpc = new aws.dataAwsVpc.DataAwsVpc(this, "vpc", {default: true})
+        const defaultSubnets = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnets", {
+            filter: [{
+                name: "vpc-id",
+                values: [defaultVpc.id]
+            }]
+        })
         const commitSha = process.env.COMMIT_SHA || "latest"
         const rdsStack = new RdsStack(this, "rds-stack")
+        
         const lambda = new aws.lambdaFunction.LambdaFunction(this, "rust-lambda", {
             functionName: "rust-lambda",
             packageType: "Image",
             role: role.arn,
             imageUri: `${repoUrl}:${commitSha}`,
+            vpcConfig: {
+                subnetIds: defaultSubnets.ids,
+                securityGroupIds: [rdsStack.rdsAurora.securityGroupIdOutput]
+            },
             environment: {
 
                 variables: {
-                    "DATABASE_URL": `postgres://root:${rdsStack.password.result}@${rdsStack.rdsAurora.clusterEndpointOutput}`
+                    "DATABASE_URL": `postgres://root:${rdsStack.password.result}@${rdsStack.rdsAurora.clusterEndpointOutput}/postgres`
                 }
             }
         })
