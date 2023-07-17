@@ -7,56 +7,57 @@ import {RdsAurora, RdsAuroraConfig} from "./.gen/modules/rds-aurora";
 const PROJECT_TAGS = {"name": "rust-lambda", "provisioner": "cdktf"}
 
 export class RdsStack extends Construct {
-  rdsAurora: RdsAurora;
-  password: random.password.Password;
-  constructor(scope: Construct, name: string) {
-    super(scope, name);
-    new random.provider.RandomProvider(this, "random", {});
-    const password = new random.password.Password(this, "password", {
-      length: 20
-    })
+    rdsAurora: RdsAurora;
+    password: random.password.Password;
+    constructor(scope: Construct, name: string) {
+        super(scope, name);
+        new random.provider.RandomProvider(this, "random", {});
+        const password = new random.password.Password(this, "password", {
+            length: 20
+        })
 
-    this.password = password;
+        this.password = password;
 
-    const vpc = new aws.dataAwsVpc.DataAwsVpc(this, "vpc", {default: true});
+        const vpc = new aws.dataAwsVpc.DataAwsVpc(this, "vpc", {default: true});
 
-    const subnetIds = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnetIds", {
-      filter: [{
-        name: "vpc-id",
-        values: [vpc.id]
-      }]
-    })
+        const subnetIds = new aws.dataAwsSubnets.DataAwsSubnets(this, "subnetIds", {
+            filter: [{
+                name: "vpc-id",
+                values: [vpc.id]
+            }]
+        })
 
-    const rdsAuroraConfig: RdsAuroraConfig = {
-        vpcId: vpc.id,
-        subnets: subnetIds.ids,
-        createDbSubnetGroup: true,
-        name: "rust-lambda-aurora",
-        engine: "aurora-postgresql",
-        engineMode: "serverless",
-        masterUsername: "root",
-        masterPassword: password.result,
-        applyImmediately: true,
-        storageEncrypted: true,
-        monitoringInterval: 60,
-        autoscalingMinCapacity: 2,
-        autoscalingMaxCapacity: 8,
-        
-        scalingConfiguration: {
-            autoPause: 'true',
-            minCapacity: '2',
-            maxCapacity: '8',
-            secondsUntilAutoPause: '300',
-            timeoutAction: "ForceApplyCapacityChange",
-        },
+        const rdsAuroraConfig: RdsAuroraConfig = {
+            vpcId: vpc.id,
+            subnets: subnetIds.ids,
+            createDbSubnetGroup: true,
+            name: "rust-lambda-aurora",
+            engine: "aurora-postgresql",
+            engineMode: "serverless",
+            masterUsername: "root",
+            masterPassword: password.result,
+            applyImmediately: true,
+            storageEncrypted: true,
+            monitoringInterval: 60,
+            autoscalingMinCapacity: 2,
+            autoscalingMaxCapacity: 8,
 
+            scalingConfiguration: {
+                autoPause: 'true',
+                minCapacity: '2',
+                maxCapacity: '8',
+                secondsUntilAutoPause: '300',
+                timeoutAction: "ForceApplyCapacityChange",
+            },
+            tags: PROJECT_TAGS
+        }
+        const rdsAurora = new RdsAurora(this, "rdsAurora", rdsAuroraConfig);
 
-        tags: PROJECT_TAGS
+        console.log('scaling configuration', rdsAurora.scalingConfiguration)
+
+        new TerraformOutput(this, "rds-aurora-endpoint", {
+            value: rdsAurora.clusterEndpointOutput
+        });
+        this.rdsAurora = rdsAurora;
     }
-    const rdsAurora = new RdsAurora(this, "rdsAurora", rdsAuroraConfig);
-    new TerraformOutput(this, "rds-aurora-endpoint", {
-        value: rdsAurora.clusterEndpointOutput
-    });
-    this.rdsAurora = rdsAurora;
-  }
 }
