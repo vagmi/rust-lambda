@@ -44,7 +44,7 @@ export class RdsStack extends Construct {
             autoscalingMinCapacity: 2,
             autoscalingMaxCapacity: 8,
             scalingConfiguration: {
-                auto_pause: 'true',
+                auto_pause: 'false',
                 min_capacity: '2',
                 max_capacity: '8',
                 second_until_auto_pause: '300',
