@@ -35,7 +35,11 @@ class EcrStack extends TerraformStack {
             encrypt: true,
             dynamodbTable: "cdktf-remote-backend-lock",
         });
-        this.repo = new aws.ecrRepository.EcrRepository(this, "ecr", {name: "rust-lambda", tags:PROJECT_TAGS})
+        this.repo = new aws.ecrRepository.EcrRepository(this, "ecr", {
+            name: "rust-lambda", 
+            forceDelete: true,
+            tags:PROJECT_TAGS
+        })
     }
 }
 

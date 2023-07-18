@@ -25,6 +25,15 @@ jobs:
       with:
         terraform_version: 1.5.1
         terraform_wrapper: false
+    - name: Set up cdktf cache
+      uses: actions/cache@v3
+      continue-on-error: false
+      with:
+        path: |
+          infra/node_modules/
+          infra/.gen/
+          infra/cdktf.out/
+        key: ${{ runner.os }}-cdktf-${{ hashFiles('infra/**/yarn.lock', '**/constraints.json') }}
     - name: Setup ECR
       working-directory: infra
       run: |
@@ -32,36 +41,6 @@ jobs:
         terraform version -json
         cdktf get
         cdktf deploy ecr --auto-approve
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        COMMIT_SHA: ${{ steps.commit.outputs.short }}
-
-  setup-stack:
-    runs-on: ubuntu-latest
-    needs:
-      - setup-ecr
-      - build-and-test
-
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
-    - id: commit
-      uses: pr-mpt/actions-commit-hash@v2
-    - name: Install CDKTF CLI
-      run: yarn global add cdktf-cli
-    - name: Install Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.5.1
-        terraform_wrapper: false
-    - name: Setup stack
-      working-directory: infra
-      run: |
-        yarn install --frozen-lockfile --prefer-offline
-        terraform version -json
-        cdktf get
-        cdktf deploy ecr infra --auto-approve
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
