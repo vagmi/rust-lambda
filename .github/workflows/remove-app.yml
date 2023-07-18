@@ -1,0 +1,33 @@
+name: Remove App
+on: workflow_dispatch
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  remove-app:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+    - id: commit
+      uses: pr-mpt/actions-commit-hash@v2
+    - name: Install CDKTF CLI
+      run: yarn global add cdktf-cli
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.1
+        terraform_wrapper: false
+    - name: Setup ECR
+      working-directory: infra
+      run: |
+        yarn install --frozen-lockfile --prefer-offline
+        terraform version -json
+        cdktf get
+        cdktf destroy infra ecr --auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        COMMIT_SHA: ${{ steps.commit.outputs.short }}
