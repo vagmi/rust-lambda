@@ -90,9 +90,9 @@ class RustLambdaStack extends TerraformStack {
                 securityGroupIds: [rdsStack.rdsAurora.securityGroupIdOutput, defaultSG.id]
             },
             environment: {
-
                 variables: {
-                    "DATABASE_URL": `postgres://root:${rdsStack.password.result}@${rdsStack.rdsAurora.clusterEndpointOutput}:5432/postgres?sslmode=disable`
+                    "DATABASE_URL": `postgres://root:${encodeURIComponent(rdsStack.password.result)}@${rdsStack.rdsAurora.clusterEndpointOutput}:5432/postgres?sslmode=disable`,
+                    "COMMIT_SHA": commitSha
                 }
             }
         })
