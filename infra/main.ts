@@ -68,6 +68,15 @@ class RustLambdaStack extends TerraformStack {
                 values: [defaultVpc.id]
             }]
         })
+        
+        const defaultSG = new aws.dataAwsSecurityGroup.DataAwsSecurityGroup(this, "default-security-group", {
+            vpcId: defaultVpc.id,
+            filter: [{
+                name: "group-name",
+                values: ["default"]
+            }]
+        })
+
         const commitSha = process.env.COMMIT_SHA || "latest"
         const rdsStack = new RdsStack(this, "rds-stack")
         
@@ -78,7 +87,7 @@ class RustLambdaStack extends TerraformStack {
             imageUri: `${repoUrl}:${commitSha}`,
             vpcConfig: {
                 subnetIds: defaultSubnets.ids,
-                securityGroupIds: [rdsStack.rdsAurora.securityGroupIdOutput]
+                securityGroupIds: [rdsStack.rdsAurora.securityGroupIdOutput, defaultSG.id]
             },
             environment: {
 
