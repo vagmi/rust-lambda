@@ -13,7 +13,8 @@ export class RdsStack extends Construct {
         super(scope, name);
         new random.provider.RandomProvider(this, "random", {});
         const password = new random.password.Password(this, "password", {
-            length: 20
+            length: 20,
+            special: false
         })
 
         this.password = password;
