@@ -45,6 +45,7 @@ export class RdsStack extends Construct {
             monitoringInterval: 60,
             autoscalingMinCapacity: 2,
             autoscalingMaxCapacity: 8,
+            skipFinalSnapshot: true,
             scalingConfiguration: {
                 auto_pause: 'true',
                 min_capacity: '2',
