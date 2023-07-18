@@ -5,7 +5,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  remove-app:
+  deploy-app:
     runs-on: ubuntu-latest
 
     steps:
