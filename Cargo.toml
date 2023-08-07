@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.72"
-axum = "0.6.18"
+axum = "0.6.20"
 axum-aws-lambda = "0.5.0"
 hyper = {version="0.14.26", features=["server"]}
 lambda_http = "0.8.1"
