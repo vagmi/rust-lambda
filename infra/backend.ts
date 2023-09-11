@@ -2,7 +2,8 @@ import { Construct } from "constructs";
 import { TerraformStack } from "cdktf";
 import * as aws from "@cdktf/provider-aws";
 
-const PROJECT_TAGS = {"name": "rust-lambda", "provisioner": "cdktf"}
+const PROJECT_NAME="rust-lambda"
+const PROJECT_TAGS = {"name": PROJECT_NAME, "provisioner": "cdktf"}
 
 // Stack for setting up S3 and the DynamoDB table for the remote S3Backend
 export class RemoteBackendStack extends TerraformStack {

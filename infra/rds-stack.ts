@@ -4,7 +4,8 @@ import * as aws from "@cdktf/provider-aws";
 import * as random from "@cdktf/provider-random";
 import {RdsAurora, RdsAuroraConfig} from "./.gen/modules/rds-aurora";
 
-const PROJECT_TAGS = {"name": "rust-lambda", "provisioner": "cdktf"}
+const PROJECT_NAME = "rust-lambda"
+const PROJECT_TAGS = {"name": PROJECT_NAME, "provisioner": "cdktf"}
 
 export class RdsStack extends Construct {
     rdsAurora: RdsAurora;
@@ -34,7 +35,7 @@ export class RdsStack extends Construct {
             createDbSubnetGroup: true,
             publiclyAccessible: true,
             autoscalingEnabled: true,
-            name: "rust-lambda-aurora",
+            name: `${PROJECT_NAME}-aurora`,
             engine: "aurora-postgresql",
             engineMode: "serverless",
             masterUsername: "root",
