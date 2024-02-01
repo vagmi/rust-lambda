@@ -18,7 +18,7 @@ jobs:
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v2
       with:
-        terraform_version: 1.5.1
+        terraform_version: 1.7.2
         terraform_wrapper: false
     - name: Set up cdktf cache
       uses: actions/cache@v3
