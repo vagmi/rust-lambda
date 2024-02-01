@@ -1,4 +1,5 @@
 use anyhow::Result;
+use axum::body::Body;
 use axum::extract::State;
 use axum::response::IntoResponse;
 
@@ -8,7 +9,7 @@ use axum::{
 };
 use hyper::{http::{Request, header::{ACCEPT, ACCEPT_ENCODING, 
                                      AUTHORIZATION, CONTENT_TYPE, ORIGIN}}, 
-           Body, StatusCode};
+           StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
@@ -116,9 +117,9 @@ async fn main() -> Result<()> {
 
     #[cfg(debug_assertions)]
     {
-        let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
+        use tokio::net::TcpListener;
+        let listener = TcpListener::bind("0..0.0.0:3000").await?;
+        axum::serve(listener, app.into_make_service())
             .await
             .unwrap();
     }
